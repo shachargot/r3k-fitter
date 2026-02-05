@@ -3,6 +3,8 @@ import yaml
 import tempfile
 import numpy as np
 import ROOT
+import os
+import uuid
 from tqdm import tqdm
 
 
@@ -83,21 +85,17 @@ def prepare_inputs(dataset_params, fit_params, b_mass_branch=None, isData=True, 
         f_in = ROOT.TFile(dataset_params.data_file if isData else dataset_params.mc_sig_file, 'READ')
     else:
         f_in = ROOT.TFile(set_file, 'READ')
-
     # Read branches
     tree = f_in.Get(dataset_params.tree_name if set_tree is None else set_tree)
-
     # Decide whether to use BDT filtering/export
     # Prefer explicit argument 'score_cut' when provided, otherwise fall back to fit_params.bdt_score_cut
     bdt_cut_value = score_cut if score_cut is not None else getattr(fit_params, 'bdt_score_cut', None)
     use_bdt = bdt_cut_value is not None
-
     # Create RooRealVars (BDT only if in use)
     if use_bdt:
         bdt_branch = ROOT.RooRealVar(dataset_params.score_branch, 'BDT Score', -100., 100.)
     else:
         bdt_branch = None
-
     ll_mass_branch = ROOT.RooRealVar(dataset_params.ll_mass_branch, 'Di-Lepton Mass [GeV]', -100., 100.)
 
     # Take region cuts from cfg file
@@ -119,7 +117,6 @@ def prepare_inputs(dataset_params, fit_params, b_mass_branch=None, isData=True, 
             fit_params.region['ll_mass_range'][1],
         )
         cutvar = ROOT.RooFormulaVar('cutvar', 'cutvar', cutstring, ROOT.RooArgList(ll_mass_branch))
-
     # Set fit ranges
     blindDataset = (isData and (fit_params.blinded)) and not unblind
 
@@ -144,11 +141,10 @@ def prepare_inputs(dataset_params, fit_params, b_mass_branch=None, isData=True, 
         # Optimized Logic for MC using RDataFrame
         rdf = ROOT.RDataFrame(tree)
         weight_branch_name = dataset_params.mc_weight_branch if weight_branch_name is None else weight_branch_name
-
         # Calculate Sum for Normalization Logic (Pre-cut application for correct norm)
         # Note: We filter by cutstring first to get the yield in the specific region
-        weight_sum = rdf.Filter(cutstring).Sum(weight_branch_name).GetValue()
-
+        rdf_temp = rdf.Filter(cutstring)
+        weight_sum = rdf_temp.Sum("total_weight").GetValue()
         # Determine Scale Factor
         final_sf = 1.0
         if weight_norm:
@@ -201,7 +197,7 @@ def prepare_inputs(dataset_params, fit_params, b_mass_branch=None, isData=True, 
 
             if binned:
                 tmp_dataset = ROOT.RooDataHist(
-                    'tmp_dataset_mc'+fit_params.channel_label,
+                    f'tmp_dataset_mc_{fit_params.channel_label}',
                     'Dataset',
                     variables,
                     ROOT.RooFit.Import(tree_tmp),
@@ -209,7 +205,7 @@ def prepare_inputs(dataset_params, fit_params, b_mass_branch=None, isData=True, 
                 )
             else:
                 tmp_dataset = ROOT.RooDataSet(
-                    'tmp_dataset_mc'+fit_params.channel_label,
+                    f'tmp_dataset_mc_{fit_params.channel_label}',
                     'Dataset',
                     variables,
                     ROOT.RooFit.Import(tree_tmp),
@@ -218,13 +214,19 @@ def prepare_inputs(dataset_params, fit_params, b_mass_branch=None, isData=True, 
 
             # Clone to detach from temp file so we can close it
             dataset = tmp_dataset.Clone(('dataset_data' if isData else 'dataset_mc')+fit_params.channel_label)
+            del tmp_dataset
+            del tree_tmp
             f_tmp.Close()
-
+            del f_tmp 
+            del rdf
+            del rdf_cut
+            ROOT.gDirectory.Clear()
+    
     if blindDataset:
         dataset = dataset.reduce(ROOT.RooFit.CutRange('sb1,sb2'))
 
     f_in.Close()
-
+ 
     return b_mass_branch, dataset
 
 

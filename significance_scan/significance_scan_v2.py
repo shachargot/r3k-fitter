@@ -84,7 +84,7 @@ def significance_scan(dataset_params, output_params, fit_params, args):
     outputs = {key: [] for key in output_keys}
 
     # scan_range = [5, 6]
-    scan_range = np.linspace(2, 12, 20)
+    scan_range = np.arange(0.95, 1.0, 0.001)
 
     for bdt_cut in loop_wrapper(scan_range, args, title='Calculating Significances'):
         fit_params.bdt_score_cut = bdt_cut

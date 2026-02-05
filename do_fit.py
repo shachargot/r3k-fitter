@@ -96,8 +96,7 @@ def do_lowq2_signal_region_fit(dataset_params, output_params, fit_params, args, 
             fit_params,
             b_mass_branch=b_mass_branch,
             isData=True,
-            set_file=dataset_params.samesign_data_file,
-            score_cut=0.,
+            set_file=dataset_params.samesign_data_file_lowq2,
             unblind=True
         )
 
@@ -135,12 +134,14 @@ def do_lowq2_signal_region_fit(dataset_params, output_params, fit_params, args, 
         fit_params,
         b_mass_branch=b_mass_branch,
         isData=False,
-        set_file=dataset_params.jpsi_file,
+        set_file=dataset_params.jpsi_lowq2_file,
         weight_branch_name=dataset_params.mc_weight_branch,
         weight_sf=sf,
-        score_cut=0.2,
     )
     total_expected_jpsi_bkg_yield = float(dataset_jpsi.sumEntries())
+
+    if args.verbose:
+        print(f'expected jpsi bkg: {total_expected_jpsi_bkg_yield}')
 
     # Build Roofit model for exponential background
     model_jpsi_template = FitModel({'name': 'lowq2_jpsi_leakage_bkg', 'branch': b_mass_branch, 'dataset': dataset_jpsi, 'channel_label': fit_params.channel_label})
@@ -170,6 +171,7 @@ def do_lowq2_signal_region_fit(dataset_params, output_params, fit_params, args, 
         print('\nStarting Fit 4 - Partial Background Template\n{}'.format(50*'~'))
 
     partial_components = [
+        'kstar_kaon',
         'kstar_pion',
         'k0star_kaon',
         'k0star_pion',
@@ -184,9 +186,9 @@ def do_lowq2_signal_region_fit(dataset_params, output_params, fit_params, args, 
 
     # Proxy scaling: Use K*0 shape for missing K*+ mode; scale factor adds K*+ yield
     # estimated via ratio of total branching fractions: 1 + (BR_total(K*+) / BR_total(K*0))
-    partial_scalings = {
-        'k0star_kaon': 1.0 + (BR_B_PLUS_KSTAR_EE * BR_KSTAR_PLUS_KPI0) / (BR_B_ZERO_KSTAR_EE * BR_K0STAR_KPI)
-    }
+    # partial_scalings = {
+    #    'k0star_kaon': 1.0 + (BR_B_PLUS_KSTAR_EE * BR_KSTAR_PLUS_KPI0) / (BR_B_ZERO_KSTAR_EE * BR_K0STAR_KPI)
+    # }
 
     total_expected_partial_yield, component_yields, dataset_merged = model_part_template.add_composite_kde_model(
         model_name='part_bkg_pdf',
@@ -196,9 +198,12 @@ def do_lowq2_signal_region_fit(dataset_params, output_params, fit_params, args, 
         samples_config=SAMPLES,
         scale_factor_func=get_mc_scale_factor,
         prepare_inputs_func=prepare_inputs,
-        yield_modifiers=partial_scalings,
+        # yield_modifiers=partial_scalings,
         verbose=args.verbose
     )
+
+    if args.verbose:
+        print(f'expected partial bkg: {total_expected_partial_yield}')
 
     components_to_plot = {
         SAMPLES[name]['label']: getattr(model_part_template, f"pdf_{name}")
@@ -216,6 +221,7 @@ def do_lowq2_signal_region_fit(dataset_params, output_params, fit_params, args, 
     )
 
     mc_yield_tot = sum(component_yields.values())
+    kstar_kaon_yield_frac = get_component_frac('kstar_kaon', component_yields, mc_yield_tot)
     kstar_pion_yield_frac = get_component_frac('kstar_pion', component_yields, mc_yield_tot)
     k0star_kaon_yield_frac = get_component_frac('k0star_kaon', component_yields, mc_yield_tot)
     k0star_pion_yield_frac = get_component_frac('k0star_pion', component_yields, mc_yield_tot)
@@ -233,6 +239,7 @@ def do_lowq2_signal_region_fit(dataset_params, output_params, fit_params, args, 
         dataset_params,
         fit_params,
         b_mass_branch=b_mass_branch,
+        set_file=dataset_params.data_file_lowq2,
         isData=True
     )
 
@@ -358,15 +365,15 @@ def do_lowq2_signal_region_fit(dataset_params, output_params, fit_params, args, 
 
     if toy_fit:
         model_final.add_signal_model('sig_pdf', 'dcb', template, let_float=False)
-    model_final.add_background_model('comb_bkg_pdf', 'exp', fit_params.fit_defaults, let_float=True)
+    model_final.add_background_model('comb_bkg_pdf', 'exp', fit_params.fit_defaults, let_float=False)
     model_final.add_background_model('jpsi_bkg_pdf', 'gauss', template, let_float=False)
     model_final.add_background_model('part_bkg_pdf', model_part_template.background_models['part_bkg_pdf'])
 
     if toy_fit:
         model_final.set_yield('sig_pdf', total_expected_signal_yield, 0, dataset_data.numEntries())
-    model_final.set_yield('comb_bkg_pdf', 2000, 0, dataset_data.numEntries())
-    model_final.set_yield('part_bkg_pdf', total_expected_partial_yield, 0, dataset_data.numEntries())
-    model_final.set_yield('jpsi_bkg_pdf', total_expected_jpsi_bkg_yield, 0, dataset_data.numEntries())
+    model_final.set_yield('comb_bkg_pdf', 100, 0, 5*dataset_data.numEntries())
+    model_final.set_yield('part_bkg_pdf', total_expected_partial_yield, 10, 5*dataset_data.numEntries())
+    model_final.set_yield('jpsi_bkg_pdf', total_expected_jpsi_bkg_yield, 10, 5*dataset_data.numEntries())
     model_final.build_model()
 
     # Define handles for model components
@@ -382,9 +389,9 @@ def do_lowq2_signal_region_fit(dataset_params, output_params, fit_params, args, 
         # sig.dcb1_mean.setConstant(False)
         # sig.dcb1_sigma.setConstant(False)
         # sig.dcb_coeff_ratio.setConstant(False)
-    # part.coeff.setConstant(False)
-    # jpsipi.coeff.setConstant(False)
-    # comb.coeff.setConstant(False)
+    part.coeff.setConstant(False)
+    comb.coeff.setConstant(False)
+    jpsi.coeff.setConstant(False)
     comb.exp_slope.setConstant(False)
 
     # Make sure RooFit doesn't garbage collect
@@ -410,6 +417,7 @@ def do_lowq2_signal_region_fit(dataset_params, output_params, fit_params, args, 
         'yield_comb_bkg':             (comb.model,   comb.coeff),
         'yield_part_bkg':             (part.model,   part.coeff),
         'yield_jpsi_bkg':             (jpsi.model, jpsi.coeff),
+        'yield_part_bkg_kstar_kaon':  (part.model,   part.coeff, kstar_kaon_yield_frac),
         'yield_part_bkg_kstar_pion':  (part.model,   part.coeff, kstar_pion_yield_frac),
         'yield_part_bkg_k0star_kaon': (part.model,   part.coeff, k0star_kaon_yield_frac),
         'yield_part_bkg_k0star_pion': (part.model,   part.coeff, k0star_pion_yield_frac),
@@ -446,7 +454,7 @@ def do_lowq2_signal_region_fit(dataset_params, output_params, fit_params, args, 
         b_mass_branch,
         dataset_data,
         Path(output_params.output_dir) / f'fit_{args.mode}_final.pdf',
-        bins=30,
+        # bins=30,
         file_label=file_label,
         fit_components={
             **({'Signal':                    sig.model} if toy_fit else {}),
@@ -461,7 +469,7 @@ def do_lowq2_signal_region_fit(dataset_params, output_params, fit_params, args, 
     )
 
     # Add normalization terms for Combine
-    comb_bkg_pdf_norm = ROOT.RooRealVar('comb_bkg_pdf'+fit_params.channel_label+'_norm', 'Number of combinatorial background events', comb.coeff.getVal(), 0, dataset_data.numEntries())
+    comb_bkg_pdf_norm = ROOT.RooRealVar('comb_bkg_pdf'+fit_params.channel_label+'_norm', 'Number of combinatorial background events', comb.coeff.getVal(), 0, 5*dataset_data.numEntries())
     part_bkg_pdf_norm = ROOT.RooRealVar('part_bkg_pdf'+fit_params.channel_label+'_norm', 'Number of partially reconstructed background events', part.coeff.getVal(), 0, dataset_data.numEntries())
     jpsi_bkg_pdf_norm = ROOT.RooRealVar('jpsi_bkg_pdf'+fit_params.channel_label+'_norm', 'Number of partially reconstructed background events', jpsi.coeff.getVal(), 0, dataset_data.numEntries())    # Write final fit to RooWorkspace
     if get_yields:
@@ -543,8 +551,7 @@ def do_jpsi_control_region_fit(dataset_params, output_params, fit_params, args, 
             fit_params,
             isData=True,
             b_mass_branch=b_mass_branch,
-            set_file=dataset_params.samesign_data_file,
-            score_cut=0.
+            set_file=dataset_params.samesign_data_file_jpsi,
         )
 
         # Build Roofit model for exponential background
@@ -563,6 +570,7 @@ def do_jpsi_control_region_fit(dataset_params, output_params, fit_params, args, 
             Path(output_params.output_dir) / f'fit_{args.mode}_comb_template.pdf',
             file_label=file_label,
             fit_result=model_comb_template.fit_result,
+            bins=30,
         )
 
         # Save fit shape parameters
@@ -637,7 +645,7 @@ def do_jpsi_control_region_fit(dataset_params, output_params, fit_params, args, 
         fit_params,
         isData=False,
         b_mass_branch=b_mass_branch,
-        set_file=dataset_params.jpsipi_jpsi_kaon_file,
+        set_file=dataset_params.jpsipi_jpsi_pion_file,
         weight_branch_name=dataset_params.mc_weight_branch,
         weight_sf=sf
     )
@@ -675,6 +683,7 @@ def do_jpsi_control_region_fit(dataset_params, output_params, fit_params, args, 
         dataset_params,
         fit_params,
         isData=True,
+        set_file=dataset_params.data_file_jpsi, 
         b_mass_branch=b_mass_branch
     )
 
@@ -711,14 +720,19 @@ def do_jpsi_control_region_fit(dataset_params, output_params, fit_params, args, 
     # Make sure RooFit doesn't garbage collect
     if not hasattr(model_final, 'memory_store'):
         model_final.memory_store = []
-
-    target_jpsipi_ratio = total_expected_jpsipi_yield / total_expected_signal_yield
+       
+    if total_expected_signal_yield == 0:
+        target_jpsipi_ratio = 0
+    else: 
+        target_jpsipi_ratio = total_expected_jpsipi_yield / total_expected_signal_yield
+    if args.verbose:
+        print(f'Target JPsiPi ratio: {target_jpsipi_ratio}')
     jpsipi_ratio = ROOT.RooFormulaVar(f'jpsipi_ratio{fit_params.channel_label}',  'JpsiPi Bkg / Signal',  '@0/@1', ROOT.RooArgList(jpsipi.coeff, sig.coeff))
     model_final.memory_store.extend([jpsipi_ratio])
 
     # Add Gaussian constraints to fit
     model_final.add_constraints({
-        'jpsipi_ratio_constraint': ROOT.RooGaussian('jpsipi_ratio_constraint', 'jpsipi_ratio_constraint', jpsipi_ratio, ROOT.RooFit.RooConst(target_jpsipi_ratio), ROOT.RooFit.RooConst(target_jpsipi_ratio * 0.05)),
+        'jpsipi_ratio_constraint': ROOT.RooGaussian('jpsipi_ratio_constraint', 'jpsipi_ratio_constraint', jpsipi_ratio, ROOT.RooFit.RooConst(target_jpsipi_ratio), ROOT.RooFit.RooConst(target_jpsipi_ratio*0.05)),
     })
 
     # Fit model to data
@@ -813,7 +827,6 @@ def do_constrained_jpsi_control_region_fit(dataset_params, output_params, fit_pa
             dataset_params,
             fit_params,
             b_mass_branch=b_mass_branch,
-            isData=False,
             weight_branch_name=dataset_params.mc_weight_branch,
             weight_sf=sf
         )
@@ -855,8 +868,7 @@ def do_constrained_jpsi_control_region_fit(dataset_params, output_params, fit_pa
             fit_params,
             isData=True,
             b_mass_branch=b_mass_branch,
-            set_file=dataset_params.samesign_data_file,
-            score_cut=0.
+            set_file=dataset_params.samesign_data_file_jpsi,
         )
 
         # Build Roofit model for exponential background
@@ -949,7 +961,7 @@ def do_constrained_jpsi_control_region_fit(dataset_params, output_params, fit_pa
         fit_params,
         isData=False,
         b_mass_branch=b_mass_branch,
-        set_file=dataset_params.jpsipi_jpsi_kaon_file,
+        set_file=dataset_params.jpsipi_jpsi_pion_file,
         weight_branch_name=dataset_params.mc_weight_branch,
         weight_sf=sf
     )
@@ -987,6 +999,7 @@ def do_constrained_jpsi_control_region_fit(dataset_params, output_params, fit_pa
         dataset_params,
         fit_params,
         isData=True,
+        set_file=dataset_params.data_file_jpsi,
         b_mass_branch=b_mass_branch
     )
 
@@ -1159,8 +1172,7 @@ def do_psi2s_control_region_fit(dataset_params, output_params, fit_params, args,
             fit_params,
             isData=True,
             b_mass_branch=b_mass_branch,
-            set_file=dataset_params.samesign_data_file,
-            score_cut=0.
+            set_file=dataset_params.samesign_data_file_psi2s,
         )
 
         model_comb_template = FitModel({'branch': b_mass_branch, 'dataset': dataset_data, 'channel_label': fit_params.channel_label})
@@ -1176,6 +1188,7 @@ def do_psi2s_control_region_fit(dataset_params, output_params, fit_params, args,
             Path(output_params.output_dir) / f'fit_{args.mode}_comb_template.pdf',
             file_label=file_label,
             fit_result=model_comb_template.fit_result,
+            bins=30,
         )
 
         template = save_params(params, Path(output_params.output_dir) / f'fit_{args.mode}_template.yml', fit_params, args, update_dict=template, lock_file=param_file_lock)
@@ -1185,6 +1198,7 @@ def do_psi2s_control_region_fit(dataset_params, output_params, fit_params, args,
         print('\nStarting Fit 3 - Partial Background Template\n{}'.format(50*'~'))
 
     partial_components = [
+        'kstar_psi2s_kaon',
         'kstar_psi2s_pion',
         'k0star_psi2s_kaon',
         'k0star_psi2s_pion',
@@ -1199,9 +1213,9 @@ def do_psi2s_control_region_fit(dataset_params, output_params, fit_params, args,
 
     # Proxy scaling: Use K*0 shape for missing K*+ mode; scale factor adds K*+ yield
     # estimated via ratio of total branching fractions: 1 + (BR_total(K*+) / BR_total(K*0))
-    partial_scalings = {
-        'k0star_psi2s_kaon': 1.0 + (BR_B_PLUS_PSI2S_KSTAR * BR_KSTAR_PLUS_KPI0) / (BR_B_ZERO_PSI2S_KSTAR * BR_K0STAR_KPI)
-    }
+    # partial_scalings = {
+    #    'k0star_psi2s_kaon': 1.0 + (BR_B_PLUS_PSI2S_KSTAR * BR_KSTAR_PLUS_KPI0) / (BR_B_ZERO_PSI2S_KSTAR * BR_K0STAR_KPI)
+    # }
 
     total_expected_partial_yield, component_yields, dataset_merged = model_part_template.add_composite_kde_model(
         model_name='part_bkg_pdf',
@@ -1211,7 +1225,7 @@ def do_psi2s_control_region_fit(dataset_params, output_params, fit_params, args,
         samples_config=SAMPLES,
         scale_factor_func=get_mc_scale_factor,
         prepare_inputs_func=prepare_inputs,
-        yield_modifiers=partial_scalings,
+      # yield_modifiers=partial_scalings,
         verbose=args.verbose
     )
 
@@ -1231,6 +1245,7 @@ def do_psi2s_control_region_fit(dataset_params, output_params, fit_params, args,
     )
 
     mc_yield_tot = sum(component_yields.values())
+    kstar_kaon_yield_frac = get_component_frac('kstar_psi2s_kaon', component_yields, mc_yield_tot)
     kstar_pion_yield_frac = get_component_frac('kstar_psi2s_pion', component_yields, mc_yield_tot)
     k0star_kaon_yield_frac = get_component_frac('k0star_psi2s_kaon', component_yields, mc_yield_tot)
     k0star_pion_yield_frac = get_component_frac('k0star_psi2s_pion', component_yields, mc_yield_tot)
@@ -1238,7 +1253,42 @@ def do_psi2s_control_region_fit(dataset_params, output_params, fit_params, args,
     template = save_params(params, Path(output_params.output_dir) / f'fit_{args.mode}_template.yml', fit_params, args, update_dict=template, lock_file=param_file_lock)
 
     if args.verbose:
-        print('\nStarting Fit 4 - Final Model\n{}'.format(50*'~'))
+        print('\nStarting Fit 4 - Psi2sPi Partial Template \n{}'.format(50*'~'))
+
+    sf = get_mc_scale_factor('psi2spi_psi2s_pion')
+    _, dataset_psi2spi = prepare_inputs(
+        dataset_params,
+        fit_params,
+        isData=False,
+        b_mass_branch=b_mass_branch,
+        set_file=dataset_params.psi2spi_psi2s_pion_file,
+        weight_branch_name=dataset_params.mc_weight_branch,
+        weight_sf=sf
+    )
+    total_expected_psi2spi_yield = float(dataset_psi2spi.sumEntries())
+
+    model_psi2spi_template = FitModel({'name': 'psi2s_psi2spi_bkg', 'branch': b_mass_branch, 'dataset': dataset_psi2spi, 'channel_label': fit_params.channel_label})
+    model_psi2spi_template.add_background_model('psi2spi_bkg_pdf', 'dcb', fit_params.fit_defaults, let_float=True)
+    model_psi2spi_template.build_model()
+
+    # Fit model to data
+    model_psi2spi_template.fit(dataset_psi2spi, use_minos=True if args.minos else False, printlevel=printlevel)
+    params = model_psi2spi_template.fit_result.floatParsFinal()
+
+    # Plot fit result
+    model_psi2spi_template.plot_fit(
+        b_mass_branch,
+        dataset_psi2spi,
+        Path(output_params.output_dir) / f'fit_{args.mode}_psi2spi_template.pdf',
+        file_label=file_label,
+        fit_result=model_psi2spi_template.fit_result,
+    )
+
+    # Save fit shape parameters
+    template = save_params(params, Path(output_params.output_dir) / f'fit_{args.mode}_template.yml', fit_params, args, update_dict=template, lock_file=param_file_lock)
+
+    if args.verbose:
+        print('\nStarting Fit 5 - Final Model\n{}'.format(50*'~'))
 
     if args.cache:
         template = load_template_from_file(output_params, args)
@@ -1247,6 +1297,7 @@ def do_psi2s_control_region_fit(dataset_params, output_params, fit_params, args,
         dataset_params,
         fit_params,
         isData=True,
+        set_file=dataset_params.data_file_psi2s,
         b_mass_branch=b_mass_branch
     )
 
@@ -1254,29 +1305,38 @@ def do_psi2s_control_region_fit(dataset_params, output_params, fit_params, args,
     model_final.add_signal_model('sig_pdf', 'dcb+dcb', template, let_float=False)
     model_final.add_background_model('comb_bkg_pdf', 'exp', template, let_float=False)
     model_final.add_background_model('part_bkg_pdf', model_part_template.background_models['part_bkg_pdf'])
+    model_final.add_background_model('psi2spi_bkg_pdf', 'dcb', template, let_float=False)
 
     model_final.set_yield('sig_pdf', total_expected_signal_yield, 0, dataset_data.numEntries())
     model_final.set_yield('comb_bkg_pdf', 2000, 0, dataset_data.numEntries())
     model_final.set_yield('part_bkg_pdf', total_expected_partial_yield, 0, dataset_data.numEntries())
+    model_final.set_yield('psi2spi_bkg_pdf', total_expected_psi2spi_yield, 0, dataset_data.numEntries())
     model_final.build_model()
 
     sig = model_final.signal_models['sig_pdf']
     comb = model_final.background_models['comb_bkg_pdf']
     part = model_final.background_models['part_bkg_pdf']
+    psi2spi = model_final.background_models['psi2spi_bkg_pdf']
 
     sig.coeff.setConstant(False)
     part.coeff.setConstant(False)
     comb.coeff.setConstant(False)
+    psi2spi.coeff.setConstant(False)
     comb.exp_slope.setConstant(False)
 
     if not hasattr(model_final, 'memory_store'):
         model_final.memory_store = []
     # <-- Define constraints here if needed
-    model_final.memory_store.extend([])  # <-- And set them here
+    target_psi2spi_ratio = total_expected_psi2spi_yield / total_expected_signal_yield
+    psi2spi_ratio = ROOT.RooFormulaVar(f'psi2spi_ratio{fit_params.channel_label}',  'JpsiPi Bkg / Signal',  '@0/@1', ROOT.RooArgList(psi2spi.coeff, sig.coeff))
+    model_final.memory_store.extend([psi2spi_ratio])
+
+    if args.verbose:
+        print(f'Target Psi2sPi ratio: {target_psi2spi_ratio}')
 
     # Add Gaussian constraints to fit
     model_final.add_constraints({
-        # <-- Add constraints here if needed
+       'psi2spi_ratio_constraint': ROOT.RooGaussian('psi2spi_ratio_constraint', 'psi2spi_ratio_constraint', psi2spi_ratio, ROOT.RooFit.RooConst(target_psi2spi_ratio), ROOT.RooFit.RooConst(target_psi2spi_ratio*0.05)),
     })
 
     model_final.fit(dataset_data, use_minos=True if args.minos else False, printlevel=printlevel)
@@ -1286,9 +1346,11 @@ def do_psi2s_control_region_fit(dataset_params, output_params, fit_params, args,
         'yield_sig':                  (sig.model,    sig.coeff),
         'yield_comb_bkg':             (comb.model,   comb.coeff),
         'yield_part_bkg':             (part.model,   part.coeff),
+        'yield_part_bkg_kstar_kaon':  (part.model,   part.coeff, kstar_kaon_yield_frac),
         'yield_part_bkg_kstar_pion':  (part.model,   part.coeff, kstar_pion_yield_frac),
         'yield_part_bkg_k0star_kaon': (part.model,   part.coeff, k0star_kaon_yield_frac),
         'yield_part_bkg_k0star_pion': (part.model,   part.coeff, k0star_pion_yield_frac),
+        'yield_psi2spi_bkg':          (psi2spi.model,   psi2spi.coeff),
     }
 
     yields = calculate_yields(
@@ -1315,6 +1377,7 @@ def do_psi2s_control_region_fit(dataset_params, output_params, fit_params, args,
             'Signal':                        sig.model,
             'Combinatorial Bkg.':            comb.model,
             'Part.-Reco. Bkg.':              part.model,
+            'B #rightarrow #psi(2S) #pi Bkg.': psi2spi.model,
         },
         fit_result=model_final.fit_result,
         legend=True,
@@ -1323,11 +1386,12 @@ def do_psi2s_control_region_fit(dataset_params, output_params, fit_params, args,
 
     comb_bkg_pdf_norm = ROOT.RooRealVar('comb_bkg_pdf'+fit_params.channel_label+'_norm', 'Number of combinatorial background events', comb.coeff.getVal(), 0, dataset_data.numEntries())
     part_bkg_pdf_norm = ROOT.RooRealVar('part_bkg_pdf'+fit_params.channel_label+'_norm', 'Number of partially reconstructed background events', part.coeff.getVal(), 0, dataset_data.numEntries())
+    psi2spi_bkg_pdf_norm = ROOT.RooRealVar('psi2spi_bkg_pdf'+fit_params.channel_label+'_norm', 'Number of partially reconstructed background events', psi2spi.coeff.getVal(), 0, dataset_data.numEntries())
     if get_yields:
-        write_workspace(output_params, args, model_final, extra_objs=[comb_bkg_pdf_norm, part_bkg_pdf_norm])
+        write_workspace(output_params, args, model_final, extra_objs=[comb_bkg_pdf_norm, part_bkg_pdf_norm, psi2spi_bkg_pdf_norm])
 
     if write:
-        extra_objects = [comb_bkg_pdf_norm, part_bkg_pdf_norm]
+        extra_objects = [comb_bkg_pdf_norm, part_bkg_pdf_norm, psi2spi_bkg_pdf_norm]
         write_workspace(output_params, args, model_final, extra_objs=extra_objects)
 
     if get_yields:

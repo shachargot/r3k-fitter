@@ -10,7 +10,8 @@ Units:
 # ==============================================================================
 # 1. GLOBAL CONSTANTS
 # ==============================================================================
-LUMI_2022_EE = 33.85    # Total 2022 Lumi (1/fb)
+# LUMI_2022_EE = 38.85
+LUMI_2023_EE = 24.225    # Total 2022 Lumi (1/fb)
 SIGMA_BB = 4.70e11      # bb cross-section (fb)
 FRAG_FRAC = 0.4         # fragmentation fraction (assuming fu = fd)
 
@@ -39,6 +40,7 @@ BR_CHIC1_JPSI_GAMMA = 0.344        # chi_c1 -> J/psi gamma
 BR_B_PLUS_PSI2S_K = 0.000646       # B+ -> psi(2S) K+
 BR_B_PLUS_PSI2S_KSTAR = 0.00062    # B+ -> psi(2S) K*+
 BR_B_ZERO_PSI2S_KSTAR = 0.00133    # B0 -> psi(2S) K*0
+BR_B_PLUS_PSI2S_PI = 0.0000244     # B+ -> psi(2S) pi+
 
 # --- B Decays (Rare/Non-Resonant Modes) ---
 BR_B_PLUS_K_EE = 5.50e-7           # B+ -> K+ e+ e-
@@ -61,7 +63,7 @@ SAMPLES = {
         'label': 'B^{+} #rightarrow J/#psi K^{+}',
         'xs_prod': SIGMA_BB,
         'bf_chain': BR_B_PLUS_JPSI_K * BR_JPSI_EE,
-        'n_gen': 506005157,
+        'n_gen': 450492489,
         'analysis_axe': 0.0,
     },
     'kstar_jpsi_kaon': {
@@ -69,7 +71,7 @@ SAMPLES = {
         'label': 'B^{+} #rightarrow J/#psi K^{*+} (K^{+}#pi^{0})',
         'xs_prod': SIGMA_BB,
         'bf_chain': BR_B_PLUS_JPSI_KSTAR * BR_KSTAR_PLUS_KPI0 * BR_JPSI_EE,
-        'n_gen': 166228045,
+        'n_gen': 100000000,
         'analysis_axe': 0.0,
     },
     'kstar_jpsi_pion': {
@@ -79,7 +81,7 @@ SAMPLES = {
         # Note: Chain usually implies K0->KS->pipi filter in efficiency,
         # but pure BF chain for production is:
         'bf_chain': BR_B_PLUS_JPSI_KSTAR * BR_KSTAR_PLUS_K0PI * BR_JPSI_EE,
-        'n_gen': 81224467,
+        'n_gen': 100000000,
         'analysis_axe': 0.0,
     },
     'chic1_jpsi_kaon': {
@@ -87,7 +89,7 @@ SAMPLES = {
         'label': 'B^{+} #rightarrow #chi_{c1} K^{+}',
         'xs_prod': SIGMA_BB,
         'bf_chain': BR_B_PLUS_CHIC1_K * BR_CHIC1_JPSI_GAMMA * BR_JPSI_EE,
-        'n_gen': 128884829,
+        'n_gen': 100000000,
         'analysis_axe': 0.0,
     },
     'jpsipi_jpsi_pion': {
@@ -95,7 +97,7 @@ SAMPLES = {
         'label': 'B^{+} #rightarrow J/#psi #pi^{+}',
         'xs_prod': SIGMA_BB,
         'bf_chain': BR_B_PLUS_JPSI_PI * BR_JPSI_EE,
-        'n_gen': 96834362,
+        'n_gen': 100000000,
         'analysis_axe': 0.0,
     },
     # Note: K0* samples share the same N_GEN because they come from the same physical process
@@ -105,7 +107,7 @@ SAMPLES = {
         'label': 'B^{0} #rightarrow J/#psi K^{*0} (K^{+}#pi^{-})$ [K^{#pm} cand]',
         'xs_prod': SIGMA_BB,
         'bf_chain': BR_B_ZERO_JPSI_KSTAR * BR_K0STAR_KPI * BR_JPSI_EE,
-        'n_gen': 81083868,
+        'n_gen': 81423360,
         'analysis_axe': 0.0,
     },
     'k0star_jpsi_pion': {
@@ -113,7 +115,7 @@ SAMPLES = {
         'label': 'B^{0} #rightarrow J/#psi K^{*0} (K^{+}#pi^{-})$ [#pi^{#pm} cand]',
         'xs_prod': SIGMA_BB,
         'bf_chain': BR_B_ZERO_JPSI_KSTAR * BR_K0STAR_KPI * BR_JPSI_EE,
-        'n_gen': 81083868,
+        'n_gen': 81423360,
         'analysis_axe': 0.0,
     },
 
@@ -125,7 +127,15 @@ SAMPLES = {
         'label': 'B^{+} #rightarrow #psi(2S) K^{+}',
         'xs_prod': SIGMA_BB,
         'bf_chain': BR_B_PLUS_PSI2S_K * BR_PSI2S_EE,
-        'n_gen': 49175225,
+        'n_gen': 48337118,
+        'analysis_axe': 0.0,
+    },
+    'kstar_psi2s_kaon': {
+        'file_key': 'kstar_psi2s_kaon_file',
+        'label': 'B^{+} #rightarrow #psi(2S) K^{*+} (K^{+}#pi^{0})',
+        'xs_prod': SIGMA_BB,
+        'bf_chain': BR_B_PLUS_PSI2S_KSTAR * BR_KSTAR_PLUS_KPI0 * BR_PSI2S_EE,
+        'n_gen': 100000000,
         'analysis_axe': 0.0,
     },
     'kstar_psi2s_pion': {
@@ -133,7 +143,7 @@ SAMPLES = {
         'label': 'B^{+} #rightarrow #psi(2S) K^{*+} (K^{0}#pi^{+})',
         'xs_prod': SIGMA_BB,
         'bf_chain': BR_B_PLUS_PSI2S_KSTAR * BR_KSTAR_PLUS_K0PI * BR_PSI2S_EE,
-        'n_gen': 7244072,
+        'n_gen': 100000000,
         'analysis_axe': 0.0,
     },
     'k0star_psi2s_kaon': {
@@ -141,7 +151,7 @@ SAMPLES = {
         'label': 'B^{0} #rightarrow #psi(2S) K^{*0}$ [K^{#pm} cand]',
         'xs_prod': SIGMA_BB,
         'bf_chain': BR_B_ZERO_PSI2S_KSTAR * BR_K0STAR_KPI * BR_PSI2S_EE,
-        'n_gen': 783325359,
+        'n_gen': 7043423,
         'analysis_axe': 0.0,
     },
     'k0star_psi2s_pion': {
@@ -149,7 +159,15 @@ SAMPLES = {
         'label': 'B^{0} #rightarrow #psi(2S) K^{*0}$ [#pi^{#pm} cand]',
         'xs_prod': SIGMA_BB,
         'bf_chain': BR_B_ZERO_PSI2S_KSTAR * BR_K0STAR_KPI * BR_PSI2S_EE,
-        'n_gen': 783325359,
+        'n_gen': 7043423,
+        'analysis_axe': 0.0,
+    },
+    'psi2spi_psi2s_pion': {
+        'file_key': 'psi2spi_psi2s_kaon_file',
+        'label': 'B^{+} #rightarrow #psi(2S) #pi^{+}',
+        'xs_prod': SIGMA_BB,
+        'bf_chain': BR_B_PLUS_PSI2S_PI * BR_PSI2S_EE,
+        'n_gen': 100000000,
         'analysis_axe': 0.0,
     },
 
@@ -161,7 +179,15 @@ SAMPLES = {
         'label': 'B^{+} #rightarrow K^{+} e^{+} e^{-}',
         'xs_prod': SIGMA_BB,
         'bf_chain': BR_B_PLUS_K_EE,
-        'n_gen': 485232391,
+        'n_gen': 412148214,
+        'analysis_axe': 0.0,
+    },
+    'kstar_kaon': {
+        'file_key': 'kstar_kaon_file',
+        'label': 'B^{+} #rightarrow K^{*+} e^{+} e^{-}',
+        'xs_prod': SIGMA_BB,
+        'bf_chain': BR_B_PLUS_KSTAR_EE * BR_KSTAR_PLUS_KPI0,
+        'n_gen': 100000000,
         'analysis_axe': 0.0,
     },
     'kstar_pion': {
@@ -169,7 +195,7 @@ SAMPLES = {
         'label': 'B^{+} #rightarrow K^{*+} e^{+} e^{-}',
         'xs_prod': SIGMA_BB,
         'bf_chain': BR_B_PLUS_KSTAR_EE * BR_KSTAR_PLUS_K0PI,
-        'n_gen': 57936515,
+        'n_gen': 100000000,
         'analysis_axe': 0.0,
     },
     'k0star_kaon': {
@@ -177,7 +203,7 @@ SAMPLES = {
         'label': 'B^{0} #rightarrow K^{*0} e^{+} e^{-}$ [K^{#pm} cand]',
         'xs_prod': SIGMA_BB,
         'bf_chain': BR_B_ZERO_KSTAR_EE * BR_K0STAR_KPI,
-        'n_gen': 98464150,
+        'n_gen': 94970053,
         'analysis_axe': 0.0,
     },
     'k0star_pion': {
@@ -185,7 +211,7 @@ SAMPLES = {
         'label': 'B^{0} #rightarrow K^{*0} e^{+} e^{-}$ [#pi^{#pm} cand]',
         'xs_prod': SIGMA_BB,
         'bf_chain': BR_B_ZERO_KSTAR_EE * BR_K0STAR_KPI,
-        'n_gen': 98464150,
+        'n_gen': 94970053,
         'analysis_axe': 0.0,
     }
 }
@@ -195,7 +221,7 @@ SAMPLES = {
 # 4. HELPER FUNCTIONS
 # ==============================================================================
 
-def get_theoretical_yield(sample_key, lumi=LUMI_2022_EE, bb_xsec=SIGMA_BB, frag_frac=FRAG_FRAC):
+def get_theoretical_yield(sample_key, lumi=LUMI_2023_EE, bb_xsec=SIGMA_BB, frag_frac=FRAG_FRAC):
     """
     Calculates the expected theoretical yield (Total events produced).
     Formula needed to ensure that you get at least one B meson from bb quark prod.
@@ -208,7 +234,7 @@ def get_theoretical_yield(sample_key, lumi=LUMI_2022_EE, bb_xsec=SIGMA_BB, frag_
     return lumi * s['xs_prod'] * (1-(1-(frag_frac*s['bf_chain']))**2)
 
 
-def get_exp_yield(sample_key, lumi=LUMI_2022_EE, bb_xsec=SIGMA_BB, frag_frac=FRAG_FRAC):
+def get_exp_yield(sample_key, lumi=LUMI_2023_EE, bb_xsec=SIGMA_BB, frag_frac=FRAG_FRAC):
     """
     Calculates the scale factor to normalize MC to expected data luminosity.
     Scale Factor (simplified) = (Lumi * Sigma * BF * acc. * eff.) / N_generated
@@ -218,7 +244,7 @@ def get_exp_yield(sample_key, lumi=LUMI_2022_EE, bb_xsec=SIGMA_BB, frag_frac=FRA
     return expected * s['analysis_axe'] / s['n_gen']
 
 
-def get_mc_scale_factor(sample_key, lumi=LUMI_2022_EE, bb_xsec=SIGMA_BB, frag_frac=FRAG_FRAC):
+def get_mc_scale_factor(sample_key, lumi=LUMI_2023_EE, bb_xsec=SIGMA_BB, frag_frac=FRAG_FRAC):
     """
     Calculates the scale factor to normalize raw MC events to the expected data luminosity.
     Scale Factor = Total_Theoretical_Yield / N_generated

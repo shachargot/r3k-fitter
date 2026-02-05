@@ -75,12 +75,12 @@ def significance_plotter(data, path, add_fitline=False, add_maxline=True, datara
         if fit_results:
             popt, _, _ = fit_results
             x0_fit, y0_fit = popt[0], poly(popt[0], *popt)
-            ax.axvline(x0_fit, color='red', linestyle='--', label=f'Optimized BDT Cut ({x0_fit:.2f})')
+            ax.axvline(x0_fit, color='red', linestyle='--', label=f'Optimized BDT Cut ({x0_fit:.3f})')
             ax.axhline(y0_fit, color='red', linestyle='--', label=f'Optimized Significance ({y0_fit:.2f})')
         elif len(sigs) > 0:
             max_idx = np.nanargmax(sigs)
             label_text = f'Optimized Significance ({sigs[max_idx]:.2f} \u00B1 {sig_errs[max_idx]:.2f})'
-            ax.axvline(scores[max_idx], color='red', linestyle='--', label=f'Optimized BDT Cut ({scores[max_idx]:.2f})')
+            ax.axvline(scores[max_idx], color='red', linestyle='--', label=f'Optimized BDT Cut ({scores[max_idx]:.3f})')
             ax.axhline(sigs[max_idx], color='red', linestyle='--', label=label_text)
 
     ax.set_xlabel('BDT Score', loc='right', fontsize=18)
