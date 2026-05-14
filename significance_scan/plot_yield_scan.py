@@ -16,6 +16,8 @@ def yield_plotter(data, path, show=False):
     n_jpsik_sig = data['n_jpsik_sig']
     n_jpsik_sig_err = data['n_jpsik_sig_err']
     
+    for i in range(len(score)):
+        print(score[i], n_jpsik_sig[i], n_jpsik_sig_err[i])
 
     fig, ax = plt.subplots(figsize=(8,8))
     ax.errorbar(score, n_eek_sig, yerr=n_eek_sig_err, label=r'$N^{sig}_{B \rightarrow eeK}$ (extrapolated)', ls='none', marker='.')

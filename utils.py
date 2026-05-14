@@ -91,9 +91,10 @@ def prepare_inputs(dataset_params, fit_params, b_mass_branch=None, isData=True, 
     # Prefer explicit argument 'score_cut' when provided, otherwise fall back to fit_params.bdt_score_cut
     bdt_cut_value = score_cut if score_cut is not None else getattr(fit_params, 'bdt_score_cut', None)
     use_bdt = bdt_cut_value is not None
+    cutset = getattr(fit_params, 'cut_set', None)
     # Create RooRealVars (BDT only if in use)
     if use_bdt:
-        bdt_branch = ROOT.RooRealVar(dataset_params.score_branch, 'BDT Score', -100., 100.)
+        bdt_branch = ROOT.RooRealVar(dataset_params.score_branch, 'BDT Score', 0., 1.)
     else:
         bdt_branch = None
     ll_mass_branch = ROOT.RooRealVar(dataset_params.ll_mass_branch, 'Di-Lepton Mass [GeV]', -100., 100.)
@@ -108,6 +109,8 @@ def prepare_inputs(dataset_params, fit_params, b_mass_branch=None, isData=True, 
             dataset_params.ll_mass_branch,
             fit_params.region['ll_mass_range'][1],
         )
+        if cutset is not None:
+            cutstring = cutstring + "&&" + cutset
         cutvar = ROOT.RooFormulaVar('cutvar', 'cutvar', cutstring, ROOT.RooArgList(bdt_branch, ll_mass_branch))
     else:
         cutstring = '{}>{}&&{}<{}'.format(
@@ -116,10 +119,35 @@ def prepare_inputs(dataset_params, fit_params, b_mass_branch=None, isData=True, 
             dataset_params.ll_mass_branch,
             fit_params.region['ll_mass_range'][1],
         )
-        cutvar = ROOT.RooFormulaVar('cutvar', 'cutvar', cutstring, ROOT.RooArgList(ll_mass_branch))
+        if cutset is not None:
+            cutstring = cutstring + "&&" + cutset
+            b_pt_branch = ROOT.RooRealVar('Bpt', 'B pT [GeV]', 0., 1000.)
+            k_pt_branch = ROOT.RooRealVar('Kpt', 'K pT [GeV]', 0., 1000.)
+            l1_pt_branch = ROOT.RooRealVar('L1pt', 'L1 pT [GeV]', 0., 1000.)
+            l2_pt_branch = ROOT.RooRealVar('L2pt', 'L2 pT [GeV]', 0., 1000.)
+            l1_eta_branch =  ROOT.RooRealVar('L1eta', 'L1 eta', -100., 100.)
+            l2_eta_branch = ROOT.RooRealVar('L2eta', 'L2 eta', -100., 100.)
+            B_cos_branch = ROOT.RooRealVar('Bcos', 'B cos alpha', 0., 1.)
+            B_prob_branch = ROOT.RooRealVar('Bprob', 'B SV prob', 0., 1.)
+            B_sLxy_branch = ROOT.RooRealVar('BsLxy', 'B sLxy', 0., 1000.)
+            D0_LepToK_branch = ROOT.RooRealVar('KLmassD0_1', 'D0 mass [GeV]', 0., 1000.)
+            D0_LepToPi_branch = ROOT.RooRealVar('KLmassD0_2', 'D0 mass [GeV]', 0., 1000.)
+            # D0_LepToK_branch = ROOT.RooRealVar('BToKEE_D0_mass_LepToK_KToPi', 'D0 mass [GeV]', 0., 1000.)
+            # D0_LepToPi_branch = ROOT.RooRealVar('BToKEE_D0_mass_LepToPi_KToK', 'D0 mass [GeV]', 0., 1000.)
+            # b_pt_branch = ROOT.RooRealVar('BToKEE_fit_pt', 'B pT [GeV]', 0., 1000.)
+            # k_pt_branch = ROOT.RooRealVar('BToKEE_fit_k_pt', 'K pT [GeV]', 0., 1000.)
+            # l1_pt_branch = ROOT.RooRealVar('BToKEE_fit_l1_pt', 'L1 pT [GeV]', 0., 1000.)
+            # l2_pt_branch = ROOT.RooRealVar('BToKEE_fit_l2_pt', 'L2 pT [GeV]', 0., 1000.)
+            # l1_eta_branch =  ROOT.RooRealVar('BToKEE_fit_l1_eta', 'L1 eta', -100., 100.)
+            # l2_eta_branch = ROOT.RooRealVar('BToKEE_fit_l2_eta', 'L2 eta', -100., 100.)
+            # B_cos_branch = ROOT.RooRealVar('BToKEE_fit_cos2D', 'B cos alpha', 0., 1.)
+            # B_prob_branch = ROOT.RooRealVar('BToKEE_svprob', 'B SV prob', 0., 1.)
+            # B_sLxy_branch = ROOT.RooRealVar('BToKEE_l_xy_sig', 'B sLxy', 0., 1000.)
+            cutvar = ROOT.RooFormulaVar('cutvar', 'cutvar', cutstring, ROOT.RooArgList(ll_mass_branch, D0_LepToK_branch, D0_LepToPi_branch, b_pt_branch, k_pt_branch, l1_pt_branch, l2_pt_branch, l1_eta_branch, l2_eta_branch, B_cos_branch, B_prob_branch, B_sLxy_branch))
+        else: 
+            cutvar = ROOT.RooFormulaVar('cutvar', 'cutvar', cutstring, ROOT.RooArgList(ll_mass_branch))
     # Set fit ranges
     blindDataset = (isData and (fit_params.blinded)) and not unblind
-
     # Generate dataset and scale if specified
     if isData:
         # Build RooArgSet columns according to whether BDT is used
@@ -130,13 +158,15 @@ def prepare_inputs(dataset_params, fit_params, b_mass_branch=None, isData=True, 
             else:
                 tmp_dataset = ROOT.RooDataSet('tmp_dataset_data'+fit_params.channel_label, 'Dataset', variables, ROOT.RooFit.Import(tree), ROOT.RooFit.Cut(cutvar))
         else:
-            variables = ROOT.RooArgSet(b_mass_branch, ll_mass_branch)
+            variables = ROOT.RooArgSet(b_mass_branch, ll_mass_branch, b_pt_branch, k_pt_branch, l1_pt_branch, l2_pt_branch, l1_eta_branch, l2_eta_branch, B_cos_branch, B_prob_branch, B_sLxy_branch)
             if binned:
                 tmp_dataset = ROOT.RooDataHist('tmp_dataset_data'+fit_params.channel_label, 'Dataset', variables, ROOT.RooFit.Import(tree), ROOT.RooFit.Cut(cutvar))
             else:
                 tmp_dataset = ROOT.RooDataSet('tmp_dataset_data'+fit_params.channel_label, 'Dataset', variables, ROOT.RooFit.Import(tree), ROOT.RooFit.Cut(cutvar))
 
         dataset = tmp_dataset.Clone(('dataset_data' if isData else 'dataset_mc')+fit_params.channel_label)
+        dataset.Print("all")
+        
     else:
         # Optimized Logic for MC using RDataFrame
         rdf = ROOT.RDataFrame(tree)
@@ -155,7 +185,7 @@ def prepare_inputs(dataset_params, fit_params, b_mass_branch=None, isData=True, 
                 final_sf = weight_norm / weight_sum
         elif weight_sf:
             final_sf = weight_sf
-
+         
         # Define the Effective Weight Column
         if final_sf != 1.0:
             actual_weight_name = "scaled_weight"
@@ -163,10 +193,8 @@ def prepare_inputs(dataset_params, fit_params, b_mass_branch=None, isData=True, 
             rdf = rdf.Define(actual_weight_name, f"{weight_branch_name} * {final_sf}")
         else:
             actual_weight_name = weight_branch_name
-
         # 4. Apply Cuts
         rdf_cut = rdf.Filter(cutstring)
-
         # Using a temporary file avoids the slow Python loop and memory overhead
         with tempfile.NamedTemporaryFile(suffix='.root', delete=True) as tmp_f:
             snapshot_opts = ROOT.RDF.RSnapshotOptions()
@@ -181,7 +209,6 @@ def prepare_inputs(dataset_params, fit_params, b_mass_branch=None, isData=True, 
                            dataset_params.ll_mass_branch, actual_weight_name]
 
             rdf_cut.Snapshot(dataset_params.tree_name, tmp_f.name, columns, snapshot_opts)
-
             # Load back into RooFit from the temp file
             f_tmp = ROOT.TFile.Open(tmp_f.name)
             tree_tmp = f_tmp.Get(dataset_params.tree_name)
@@ -214,6 +241,7 @@ def prepare_inputs(dataset_params, fit_params, b_mass_branch=None, isData=True, 
 
             # Clone to detach from temp file so we can close it
             dataset = tmp_dataset.Clone(('dataset_data' if isData else 'dataset_mc')+fit_params.channel_label)
+            dataset.Print("all")
             del tmp_dataset
             del tree_tmp
             f_tmp.Close()

@@ -180,7 +180,7 @@ def do_lowq2_signal_region_fit(dataset_params, output_params, fit_params, args, 
     model_part_template = FitModel({
         'name': 'lowq2_part_bkg',
         'branch': b_mass_branch,
-        'dataset': dataset_samesign_data,
+        'dataset': dataset_rare,  # temp dataset
         'channel_label': fit_params.channel_label
     })
 
@@ -226,7 +226,7 @@ def do_lowq2_signal_region_fit(dataset_params, output_params, fit_params, args, 
     k0star_kaon_yield_frac = get_component_frac('k0star_kaon', component_yields, mc_yield_tot)
     k0star_pion_yield_frac = get_component_frac('k0star_pion', component_yields, mc_yield_tot)
 
-    template = save_params(params, Path(output_params.output_dir) / f'fit_{args.mode}_template.yml', fit_params, args, update_dict=template, lock_file=param_file_lock)
+    # template = save_params(params, Path(output_params.output_dir) / f'fit_{args.mode}_template.yml', fit_params, args, update_dict=template, lock_file=param_file_lock)
 
     # Add template for final fit
     if args.verbose:
@@ -466,6 +466,7 @@ def do_lowq2_signal_region_fit(dataset_params, output_params, fit_params, args, 
         legend='ul',
         extra_text=plot_text,
         stat_text_pos='middle',
+        bins=50,
     )
 
     # Add normalization terms for Combine
@@ -487,7 +488,7 @@ def do_lowq2_signal_region_fit(dataset_params, output_params, fit_params, args, 
 
 
 # Nominal control region fit to jpsi resonance
-def do_jpsi_control_region_fit(dataset_params, output_params, fit_params, args, write=True, get_yields=False, custom_yield_ranges=None, file_label=None, legend_text=None, param_file_lock=False):
+def do_jpsi_control_region_fit(dataset_params, output_params, fit_params, args, write=True, get_yields=False, custom_yield_ranges=None, file_label=None, legend_text=None, param_file_lock=False, splot=False):
     printlevel = set_verbosity(args)
     set_mode(dataset_params, output_params, fit_params, args)
     makedirs(output_params.output_dir)
@@ -790,7 +791,30 @@ def do_jpsi_control_region_fit(dataset_params, output_params, fit_params, args, 
     # Add normalization terms for Combine
     comb_bkg_pdf_norm = ROOT.RooRealVar('comb_bkg_pdf'+fit_params.channel_label+'_norm', 'Number of combinatorial background events', comb.coeff.getVal(), 0, dataset_data.numEntries())
     part_bkg_pdf_norm = ROOT.RooRealVar('part_bkg_pdf'+fit_params.channel_label+'_norm', 'Number of partially reconstructed background events', part.coeff.getVal(), 0, dataset_data.numEntries())
-    jpsipi_bkg_pdf_norm = ROOT.RooRealVar('jpsipi_bkg_pdf'+fit_params.channel_label+'_norm', 'Number of partially reconstructed background events', jpsipi.coeff.getVal(), 0, dataset_data.numEntries())    # Write final fit to RooWorkspace
+    jpsipi_bkg_pdf_norm = ROOT.RooRealVar('jpsipi_bkg_pdf'+fit_params.channel_label+'_norm', 'Number of partially reconstructed background events', jpsipi.coeff.getVal(), 0, dataset_data.numEntries())
+
+    if splot:
+        print("calculating sWeights")
+        sig_pdf_coeff_jpsi_region      = model_final.fit_result.floatParsFinal().find("sig_pdf_coeff_jpsi_region")
+        part_bkg_pdf_coeff_jpsi_region = model_final.fit_result.floatParsFinal().find("part_bkg_pdf_coeff_jpsi_region")
+        comb_bkg_pdf_coeff_jpsi_region = model_final.fit_result.floatParsFinal().find("comb_bkg_pdf_coeff_jpsi_region")
+        jpsipi_bkg_pdf_coeff_jpsi_region = model_final.fit_result.floatParsFinal().find("jpsipi_bkg_pdf_coeff_jpsi_region")
+
+        sData = ROOT.RooStats.SPlot("sData", "An SPlot",dataset_data.reduce(ROOT.RooArgSet(b_mass_branch)), model_final.fit_model, ROOT.RooArgList(sig_pdf_coeff_jpsi_region,part_bkg_pdf_coeff_jpsi_region,comb_bkg_pdf_coeff_jpsi_region,jpsipi_bkg_pdf_coeff_jpsi_region))
+
+        output_filename = "signal_sWeights.txt"
+        with open(output_filename, "w") as f:
+            f.write("Bmass,sWeight\n")
+            for i in range(dataset_data.numEntries()):
+                sw = sData.GetSWeight(i, "sig_pdf_coeff_jpsi_region")
+                entry = dataset_data.get(i)
+                bmass = entry.getRealValue(dataset_params.b_mass_branch)
+                f.write(f"{bmass},{sw}\n")
+
+        print("Sum of signal sWeights:", sum(sData.GetSWeight(i, "sig_pdf_coeff_jpsi_region") for i in range(dataset_data.numEntries())))
+
+        print(f"Wrote {dataset_data.numEntries()} sWeights to {output_filename}")
+
     if get_yields:
         write_workspace(output_params, args, model_final, extra_objs=[comb_bkg_pdf_norm, part_bkg_pdf_norm, jpsipi_bkg_pdf_norm])
 
@@ -1105,6 +1129,20 @@ def do_constrained_jpsi_control_region_fit(dataset_params, output_params, fit_pa
     jpsipi_bkg_pdf_norm = ROOT.RooRealVar('jpsipi_bkg_pdf'+fit_params.channel_label+'_norm', 'Number of partially reconstructed background events', jpsipi.coeff.getVal(), 0, dataset_data.numEntries())    # Write final fit to RooWorkspace
     if get_yields:
         write_workspace(output_params, args, model_final, extra_objs=[comb_bkg_pdf_norm, part_bkg_pdf_norm, jpsipi_bkg_pdf_norm])
+
+    if args.splot:
+        print("calculating sWeights") 
+        sData = ROOT.RooStats.SPlot("sData", "An SPlot",dataset_data.reduce(ROOT.RooArgSet(b_mass_branch)), model_final, ROOT.RooArgList(sig_pdf_coeff_jpsi_region,part_bkg_pdf_coeff_jpsi_region,comb_bkg_pdf_coeff_jpsi_region,jpsipi_bkg_pdf_coeff_jpsi_region))
+
+        output_filename = "signal_sWeights.txt"
+        with open(output_filename, "w") as f:
+            for i in range(dataset_data.numEntries()):
+                sw = sData.GetSWeight(i, "sig_pdf_coeff_jpsi_region")
+                f.write(f"{sw}\n")
+
+        print("Sum of signal sWeights:", sum(sData.GetSWeight(i, "sig_pdf_coeff_jpsi_region") for i in range(dataset_data.numEntries())))
+
+        print(f"Wrote {dataset_data.numEntries()} sWeights to {output_filename}")
 
     # Write final fit to RooWorkspace
     if write:
@@ -1432,7 +1470,7 @@ def main(args):
         if args.constrained_fit:
             do_constrained_jpsi_control_region_fit(dataset_params, output_params, fit_params, args)
         else:
-            do_jpsi_control_region_fit(dataset_params, output_params, fit_params, args)
+            do_jpsi_control_region_fit(dataset_params, output_params, fit_params, args, splot=args.splot)
 
     elif args.mode == 'psi2s':
         if args.constrained_fit:
@@ -1450,6 +1488,7 @@ if __name__ == '__main__':
     parser.add_argument('-t', '--toy_fit', dest='toy_fit', action='store_true', help='fit toy data in low-q2')
     parser.add_argument('-cf', '--constrained_fit', dest='constrained_fit', action='store_true', help='Fit with norm-constrained templates')
     parser.add_argument('-minos', '--minos', dest='minos', action='store_true', help='use MINOS minimizer')
+    parser.add_argument('-splot', '--splot', action='store_true', help='calculate sWeights')
     args = parser.parse_args()
 
     main(args)

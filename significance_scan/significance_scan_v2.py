@@ -84,9 +84,10 @@ def significance_scan(dataset_params, output_params, fit_params, args):
     outputs = {key: [] for key in output_keys}
 
     # scan_range = [5, 6]
-    scan_range = np.arange(0.95, 1.0, 0.001)
+    scan_range = np.arange(0.99, 0.999, 0.001)
 
     for bdt_cut in loop_wrapper(scan_range, args, title='Calculating Significances'):
+        print("bdt score: ", bdt_cut)
         fit_params.bdt_score_cut = bdt_cut
 
         # Calculate lowq2 MC eff for bdt cut in mass window
@@ -119,7 +120,7 @@ def significance_scan(dataset_params, output_params, fit_params, args):
             get_yields=True, 
             custom_yield_ranges=jpsi_sig_window,
             file_label=f'bdt>{str(bdt_cut).replace(".", "p")}',
-            write=False)
+            write=False, splot=False)
         remove_intermediate_plots(output_params.output_dir)
 
         _n_lowq2_bkg = (
@@ -171,7 +172,7 @@ def main(args):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('-c', '--config', type=str, default='../fit_cfg.yml', help='fit configuration file (.yml)')
+    parser.add_argument('-c', '--config', type=str, default='../config/fit_cfg.yml', help='fit configuration file (.yml)')
     parser.add_argument('-v', '--verbose', action='store_true', help='print fitting procedure to stdout')
     parser.add_argument('-lc', '--loadcache', dest='cache', action='store_true', help='load cached templates if available')
     parser.add_argument('-minos', '--minos', action='store_true', help='use MINOS minimizer')

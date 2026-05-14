@@ -353,7 +353,7 @@ class FitModel:
                 weight_branch_name=dataset_params.mc_weight_branch,
                 weight_sf=sf
             )
-
+ 
             # Merge for plotting
             if dataset_merged is None:
                 dataset_merged = ds_comp.Clone(f'dataset_merged_{model_name}')
@@ -497,6 +497,7 @@ class FitModel:
         self.fit_result = self.fit_model.fitTo(*fit_args)
 
         # Basic limit checking
+        
         for param in self.fit_result.floatParsFinal():
             val = param.getVal()
             min_val = param.getMin()
@@ -511,6 +512,8 @@ class FitModel:
         # Fit status check
         status = self.fit_result.status()
         cov_qual = self.fit_result.covQual()
+        # cov_matrix = self.fit_result.covarianceMatrix()
+        # cov_matrix.Print()
 
         if not (status == 0 and cov_qual == 3):
             print(f'\n  ❌ {self.name} FIT ISSUES:')

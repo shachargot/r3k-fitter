@@ -1,13 +1,13 @@
 datasets:
   data_file_lowq2: /eos/cms/store/group/phys_bphys/DiElectronX/sgottlie/r3k-integration/post_bdt_ntuples/lowq2_wScores/measurement_data_mix.root
-  samesign_data_file_lowq2: /eos/cms/store/group/phys_bphys/DiElectronX/sgottlie/r3k-integration/post_bdt_ntuples/lowq2_wScores/measurement_samesign_electrons_mix.root
-  data_file_jpsi: /eos/cms/store/group/phys_bphys/DiElectronX/sgottlie/r3k-integration/post_bdt_ntuples/jpsi_wScores/measurement_data_mix.root
-  samesign_data_file_jpsi: /eos/cms/store/group/phys_bphys/DiElectronX/sgottlie/r3k-integration/post_bdt_ntuples/jpsi_wScores/measurement_samesign_electrons_mix.root
-  data_file_psi2s: /eos/cms/store/group/phys_bphys/DiElectronX/sgottlie/r3k-integration/post_bdt_ntuples/psi2s_wScores/measurement_data_mix.root
-  samesign_data_file_psi2s: /eos/cms/store/group/phys_bphys/DiElectronX/sgottlie/r3k-integration/post_bdt_ntuples/psi2s_wScores/measurement_samesign_electrons_mix.root
+  samesign_data_file_lowq2: /eos/cms/store/group/phys_bphys/DiElectronX/sgottlie/r3k-integration/post_bdt_ntuples/lowq2_wScores/measurement_samesign_electrons_lowq2_mix.root
+  data_file_jpsi: /eos/cms/store/group/phys_bphys/DiElectronX/sgottlie/r3k-integration/post_bdt_ntuples/jpsi_wScores/measurement_data_jpsi_mix.root
+  samesign_data_file_jpsi: /eos/cms/store/group/phys_bphys/DiElectronX/sgottlie/r3k-integration/post_bdt_ntuples/jpsi_wScores/measurement_samesign_electrons_jpsi_mix.root
+  data_file_psi2s: /eos/cms/store/group/phys_bphys/DiElectronX/sgottlie/r3k-integration/post_bdt_ntuples/psi2s_wScores/measurement_data_psi2s_mix.root
+  samesign_data_file_psi2s: /eos/cms/store/group/phys_bphys/DiElectronX/sgottlie/r3k-integration/post_bdt_ntuples/psi2s_wScores/measurement_samesign_electrons_psi2s_mix.root
   rare_file: /eos/cms/store/group/phys_bphys/DiElectronX/sgottlie/r3k-integration/post_bdt_ntuples/lowq2_wScores/measurement_rare_mix.root
   jpsi_file: /eos/cms/store/group/phys_bphys/DiElectronX/sgottlie/r3k-integration/post_bdt_ntuples/jpsi_wScores/measurement_jpsi_mix.root
-  jpsi_lowq2_file: /eos/cms/store/group/phys_bphys/DiElectronX/sgottlie/r3k-integration/post_bdt_ntuples/lowq2_wScores/measurement_jpsi_mix.root
+  jpsi_lowq2_file: /eos/cms/store/group/phys_bphys/DiElectronX/sgottlie/r3k-integration/post_bdt_ntuples/lowq2_wScores/measurement_jpsi_lowq2_mix.root
   psi2s_file: /eos/cms/store/group/phys_bphys/DiElectronX/sgottlie/r3k-integration/post_bdt_ntuples/psi2s_wScores/measurement_psi2s_mix.root
   kstar_jpsi_pion_file: /eos/cms/store/group/phys_bphys/DiElectronX/sgottlie/r3k-integration/post_bdt_ntuples/jpsi_wScores/measurement_kstar_jpsi_pion_mix.root
   kstar_jpsi_kaon_file: /eos/cms/store/group/phys_bphys/DiElectronX/sgottlie/r3k-integration/post_bdt_ntuples/jpsi_wScores/measurement_kstar_jpsi_kaon_mix.root
@@ -34,7 +34,8 @@ output:
   output_dir: fitter_outputs/
 
 fit:
-  bdt_score_cut: 0.997
+  bdt_score_cut: 0.9
+  # cut_set: "Bpt>15&&L1pt>5&&L2pt>5&&std::abs(L1eta)<1.4&&std::abs(L2eta)<1.4&&Bcos>0.999&&Bprob>0.0001&&Kpt>1&&BsLxy>4"
   regions:
     jpsi:
       fit_range: [4.75, 5.7]
@@ -55,7 +56,7 @@ fit:
         dcb2_n1_sig_pdf:           [1.63, 0.5, 50.]
         dcb2_alpha2_sig_pdf:       [2.85, .1, 6.]
         dcb2_n2_sig_pdf:           [3, 0.5, 50.]
-        exp_slope_comb_bkg_pdf:    [-1.6, -5., -0.1]
+        exp_slope_comb_bkg_pdf:    [-1.6, -5., 5.]
         exp_slope_part_bkg_pdf:    [5., 4.0, 10.]
         erfc_mean_part_bkg_pdf:    [5., 4.95, 5.05]
         erfc_sigma_part_bkg_pdf:   [0.03, 0.01, 0.06]
